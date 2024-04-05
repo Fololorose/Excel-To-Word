@@ -1,0 +1,64 @@
+Sub ExportSheetsToWord()
+
+    Dim fDialog As FileDialog
+    Dim i As Variant
+    Dim openedWorkbook As Workbook
+    Dim sheet As Worksheet
+    Dim wdApp As Object
+    Dim wdDoc As Object
+    Dim folderPath As String
+    Dim savePath As String
+    
+    Application.ScreenUpdating = False
+    
+    Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
+    'IMPORTANT!
+    fDialog.AllowMultiSelect = False
+    'Optional FileDialog properties
+    fDialog.Title = "Select a file"
+    fDialog.InitialFileName = "C:\"
+    'Optional: Add filters
+    fDialog.Filters.Add "Excel files", "*.xlsx"
+    
+    'Show the dialog. -1 means success!
+    If fDialog.Show = -1 Then
+        ' Loop through each selected file
+        For Each i In fDialog.SelectedItems
+            ' Open each selected workbook
+            Set openedWorkbook = Workbooks.Open(Filename:=i, ReadOnly:=True)
+            ' Create a new instance of Word application
+            Set wdApp = CreateObject("Word.Application")
+            ' Loop through each worksheet in the workbook
+            For Each sheet In openedWorkbook.Sheets
+                ' Create a new Word document
+                Set wdDoc = wdApp.Documents.Add
+                ' Loop through each cell in the used range of the worksheet
+                For Each cell In sheet.UsedRange
+                    ' Check if the cell is not empty
+                    If Not IsEmpty(cell.Value) Then
+                        ' Insert the content of the non-empty cell into the Word document
+                        wdDoc.Range.InsertAfter cell.Value & vbNewLine
+                    End If
+                Next cell
+                ' Set save path for the Word document
+                folderPath = openedWorkbook.Path
+                savePath = openedWorkbook.Path & "\" & sheet.Name & ".docx"
+                ' Save the Word document
+                wdDoc.SaveAs2 savePath
+                ' Close the Word document
+                wdDoc.Close
+            Next sheet
+        ' Close the opened workbook
+        openedWorkbook.Close
+        Next i
+    End If
+ 
+    ' Clean up Word objects
+    wdApp.Quit
+    Set wdDoc = Nothing
+    Set wdApp = Nothing
+ 
+    MsgBox "Sheets have been exported to Word successfully.", vbInformation
+    ' Open directory in File Explorer
+    Shell "explorer.exe " & folderPath, vbNormalFocus
+End Sub
